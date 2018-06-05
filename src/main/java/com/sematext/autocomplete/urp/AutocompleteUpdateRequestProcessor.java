@@ -27,12 +27,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.Math;
 
 public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessor.class);
 
     static final String PHRASE = "phrase";
     static final String TYPE = "type";
+    static final String COUNT = "count";
 
     private SolrClient solrAC;
     private List<String> fields;
@@ -94,10 +96,17 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                           phrases = phrase.split(" ");
                       }
 
+                      Map<String, Integer> uniquePhrases = new HashMap<>();
                       for (String value : phrases) {
-                          SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(value.trim());
-                          addField(document, PHRASE, decoratePhrase(value.trim(), doc));
-                          addField(document, "type", fieldName.substring(1, fieldName.length() - 1));
+                          String decoratedPhrase = decoratePhrase(value.trim(), doc);
+                          uniquePhrases.put(decoratedPhrase, 1 + uniquePhrases.getOrDefault(decoratedPhrase, 0));
+                      }
+
+                      for (String p : uniquePhrases.keySet()) {
+                          SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(p);
+                          addField(document, PHRASE, p);
+                          addField(document, TYPE, fieldName.substring(1, fieldName.length() - 1));
+                          addCount(document, COUNT, uniquePhrases.get(p));
                           addCopyAsIsFields(document, copyAsIsFieldsValues);
                           try {
                               solrAC.add(document);
@@ -105,11 +114,12 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                               e.printStackTrace();
                           }
                       }
-
                   } else {
-                      SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(phrase);
-                      addField(document, PHRASE, decoratePhrase(phrase, doc));
+                      String decoratedPhrase = decoratePhrase(phrase, doc);
+                      SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(decoratedPhrase);
+                      addField(document, PHRASE, decoratedPhrase);
                       addField(document, TYPE, fieldName);
+                      addCount(document, COUNT, 1);
                       addCopyAsIsFields(document, copyAsIsFieldsValues);
                       try {
                           solrAC.add(document);
@@ -207,6 +217,21 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
           }
         }
       }
+    }
+
+    private void addCount(SolrInputDocument doc, String name, Integer value) {
+        // find if such field already exists
+        if (doc.get(name) == null) {
+            doc.addField(name, Math.log10(value));
+        } else {
+            SolrInputField f = doc.get(name);
+
+            if (f.getValue() == null){
+                f.setValue(Math.log10(value));
+            } else {
+                f.setValue(Math.log10(Math.pow(10, (double) f.getValue()) + value));
+            }
+        }
     }
 
     private SolrInputDocument fetchExistingOrCreateNewSolrDoc(String id) throws SolrServerException, IOException {

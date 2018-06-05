@@ -122,6 +122,7 @@
   <field name="phrase" type="string" indexed="true" required="true" stored="true"/>
   <field name="phraseSpellchecking" type="prefixTokTypeNgram" indexed="true" stored="false"/>
   <field name="prefixTok" type="prefixTokType" indexed="true" stored="false"/>
+  <field name="count" type="double" indexed="true" required="false" stored="false"/>
   <field name="price" type="string" indexed="false" required="false" stored="true"/>
   <field name="pureCompletion" type="prefixUnTokType" indexed="true" stored="false"/>
   <field name="resalePrice" type="float" indexed="true" required="false" stored="true"/>
