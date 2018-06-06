@@ -145,7 +145,11 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         } catch (SolrServerException e) {
           LOG.error("Error while updating the document", e);
         } catch (Throwable thr) {
-          LOG.error("Error while updating the document", thr);
+          if (thr.getMessage().contains("version conflict")) {
+            LOG.warn(thr.getMessage());
+          } else {
+            LOG.error("Error while updating the document", thr);
+          }
         }
 
         super.processAdd(cmd);
