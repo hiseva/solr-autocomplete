@@ -6,7 +6,7 @@
  *    The copyright notice above does not evidence any actual or intended
  *    publication of such source code.
  */
-package com.sematext.autocomplete.urp;
+package com.hiseva.autocomplete.urp;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -23,27 +23,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.lang.Math;
 
 public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessor.class);
 
+    static final String ID = "id";
     static final String PHRASE = "phrase";
     static final String TYPE = "type";
+    static final String FREQUENCY = "frequency";
 
     private SolrClient solrAC;
     private List<String> fields;
     private List<String> copyAsIsFields;
+    private List<String> idFields;
     private String separator;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<String> copyAsIsFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
         this.solrAC = solrAC;
         this.fields = fields;
         this.copyAsIsFields = copyAsIsFields;
+        this.idFields = idFields;
         this.separator = separator;
     }
 
@@ -58,16 +66,29 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         SolrInputDocument doc = cmd.getSolrInputDocument();
         
         // first extract all fields which should be copied as-is
+        // and get id field values
+        Set<String> idField = new HashSet<>();
+        for (String name: idFields) {
+            idField.add(name);
+        }
+        ArrayList<String> idFieldValues = new ArrayList<>();
         int index = 0;
         for (String fieldName : copyAsIsFields) {
           SolrInputField field = doc.getField(fieldName);
           
           if (field != null) {
             copyAsIsFieldsValues[index++] = field;
+            if (idField.contains(fieldName)) {
+              idFieldValues.add(field.getValue().toString());
+            }
           }
         }
 
+        String idPrefix = String.join("-", idFieldValues);
+
         try {
+          Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
+
           for (String fieldName : fields) {
   
               boolean arrayField = fieldName.startsWith("[") && fieldName.endsWith("]");
@@ -95,31 +116,30 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                       }
 
                       for (String value : phrases) {
-                          SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(value.trim());
-                          addField(document, PHRASE, decoratePhrase(value.trim(), doc));
-                          addField(document, "type", fieldName.substring(1, fieldName.length() - 1));
-                          addCopyAsIsFields(document, copyAsIsFieldsValues);
-                          try {
-                              solrAC.add(document);
-                          } catch (SolrServerException e) {
-                              e.printStackTrace();
-                          }
+                          String decoratedPhrase = decoratePhrase(value.trim(), doc);
+                          addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1));
                       }
-
                   } else {
-                      SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(phrase);
-                      addField(document, PHRASE, decoratePhrase(phrase, doc));
-                      addField(document, TYPE, fieldName);
-                      addCopyAsIsFields(document, copyAsIsFieldsValues);
-                      try {
-                          solrAC.add(document);
-                      } catch (SolrServerException e) {
-                          e.printStackTrace();
-                      }
+                      String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
+                      addPhrase(uniquePhrases, decoratedPhrase, fieldName);
                   }
               }
           }
 
+          for (String p : uniquePhrases.keySet()) {
+            String id = idPrefix != null ? idPrefix + "-" + p : p;
+            SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
+            addField(document, ID, id);
+            addField(document, PHRASE, p);
+            addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
+            addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
+            addCopyAsIsFields(document, copyAsIsFieldsValues);
+            try {
+                solrAC.add(document);
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            }
+          }
           // not done any more, since users should be able to configure it as they want
           // solrAC.commit();
         } catch (SolrServerException e) {
@@ -130,7 +150,21 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
         super.processAdd(cmd);
     }
-    
+
+    private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type) {
+        if (phrase != null && phrase != "") {
+            Map<String, Object> d = new HashMap<>();
+            if (uniquePhrases.containsKey(phrase)) {
+                d = uniquePhrases.get(phrase);
+                d.put("count", 1 + (int) d.get("count"));
+            } else {
+                d.put("type", type);
+                d.put("count", 1);
+            }
+            uniquePhrases.put(phrase, d);
+        }
+    }
+
     /**
      * Can be overriden by subclasses, for instance, if AC phrase should not be just copied from
      * some phrase field but decorated before adding it to AC doc. Examples for decoration:
@@ -146,7 +180,18 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
      * @return .
      */
     protected String decoratePhrase(String phraseFieldValue, SolrInputDocument mainIndexDoc) {
-      return phraseFieldValue;
+        String resultString = phraseFieldValue.toLowerCase();
+        //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        //chars that need escaping \.[]{}()<>*+-=?^$|
+        resultString = resultString.replaceAll("[\\!\"#\\$%&\\(\\)\\*,\\-:;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
+        resultString = resultString.replaceAll(" +", " ").trim();
+        if (resultString.matches("^['@\\./\\+_].*")) {
+            resultString = resultString.substring(1, resultString.length());
+        }
+        if (resultString.matches(".*['@\\./\\+_]$")) {
+            resultString = resultString.substring(0, resultString.length() - 1);
+        }
+        return resultString.trim();
     }
     
     private void addField(SolrInputDocument doc, String name, String value) {
@@ -209,9 +254,24 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       }
     }
 
+    private void addCount(SolrInputDocument doc, String name, Integer value) {
+        // find if such field already exists
+        if (doc.get(name) == null) {
+            doc.addField(name, Math.log10(value));
+        } else {
+            SolrInputField f = doc.get(name);
+
+            if (f.getValue() == null){
+                f.setValue(Math.log10(value));
+            } else {
+                f.setValue(Math.log10(Math.pow(10, (float) f.getValue()) + (float) value));
+            }
+        }
+    }
+
     private SolrInputDocument fetchExistingOrCreateNewSolrDoc(String id) throws SolrServerException, IOException {
       Map<String, String> p = new HashMap<String, String>();
-      p.put("q", PHRASE + ":\"" + ClientUtils.escapeQueryChars(id) + "\"");
+      p.put("q", ID + ":\"" + ClientUtils.escapeQueryChars(id) + "\"");
       
       SolrParams params = new MapSolrParams(p);
       

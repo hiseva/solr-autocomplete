@@ -1,4 +1,4 @@
-package com.sematext.autocomplete.urp;
+package com.hiseva.autocomplete.urp;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
@@ -24,6 +24,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
 
     private List<String> fields = new ArrayList<String>();
     private List<String> copyAsIsFields = new ArrayList<String>();
+    private List<String> idFields = new ArrayList<String>();
 
     @Override
     @SuppressWarnings("rawtypes")
@@ -42,6 +43,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
 
         String fieldsStr = (String) args.get("fields");
         String copyAsIsFieldsStr = (String) args.get("copyAsIsFields");
+        String idFieldsStr = (String) args.get("idFields");
 
         if (fieldsStr == null) {
             throw new RuntimeException(
@@ -59,6 +61,13 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             copyAsIsFields.add(f.trim());
           }
         }
+
+        if (idFieldsStr != null) {
+            String [] fs = idFieldsStr.split(",");
+            for (String f : fs) {
+                idFields.add(f.trim());
+            }
+        }
     }
 
     @Override
@@ -69,7 +78,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             this.solrACServer = new EmbeddedSolrServer(core.getCoreContainer(), solrAC);
         }
 
-        return new AutocompleteUpdateRequestProcessor(solrACServer, fields, copyAsIsFields, separator, nextURP);
+        return new AutocompleteUpdateRequestProcessor(solrACServer, fields, copyAsIsFields, idFields, separator, nextURP);
     }
 
     @Override
