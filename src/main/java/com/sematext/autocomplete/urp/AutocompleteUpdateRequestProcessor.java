@@ -180,7 +180,17 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
      * @return .
      */
     protected String decoratePhrase(String phraseFieldValue, SolrInputDocument mainIndexDoc) {
-      return phraseFieldValue;
+        String resultString = phraseFieldValue.toLowerCase();
+        //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        resultString = resultString.replaceAll("[\\!\"#\\$%&\\(\\)\\*\\+,\\-:;\\<\\=\\>\\?\\[\\]\\^\\\\_`\\{\\|\\}~]+", " ");
+        resultString = resultString.replaceAll(" +", " ").trim();
+        if (resultString.matches("^['@\\./].*")) {
+            resultString = resultString.substring(1, resultString.length());
+        }
+        if (resultString.matches(".*['@\\./]$")) {
+            resultString = resultString.substring(0, resultString.length() - 1);
+        }
+        return resultString.trim();
     }
     
     private void addField(SolrInputDocument doc, String name, String value) {
