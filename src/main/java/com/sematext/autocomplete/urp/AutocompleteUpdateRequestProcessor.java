@@ -182,12 +182,13 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     protected String decoratePhrase(String phraseFieldValue, SolrInputDocument mainIndexDoc) {
         String resultString = phraseFieldValue.toLowerCase();
         //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-        resultString = resultString.replaceAll("[\\!\"#\\$%&\\(\\)\\*\\+,\\-:;\\<\\=\\>\\?\\[\\]\\^\\\\_`\\{\\|\\}~]+", " ");
+        //chars that need escaping \.[]{}()<>*+-=?^$|
+        resultString = resultString.replaceAll("[\\!\"#\\$%&\\(\\)\\*,\\-:;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
         resultString = resultString.replaceAll(" +", " ").trim();
-        if (resultString.matches("^['@\\./].*")) {
+        if (resultString.matches("^['@\\./\\+_].*")) {
             resultString = resultString.substring(1, resultString.length());
         }
-        if (resultString.matches(".*['@\\./]$")) {
+        if (resultString.matches(".*['@\\./\\+_]$")) {
             resultString = resultString.substring(0, resultString.length() - 1);
         }
         return resultString.trim();
