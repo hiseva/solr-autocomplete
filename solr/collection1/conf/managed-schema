@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Solr managed schema - automatically generated - DO NOT EDIT -->
-<schema name="autocomplete-ngram" version="1.6">
-  <uniqueKey>phrase</uniqueKey>
+<schema name="autocomplete-ngram" version="1.7">
+  <uniqueKey>id</uniqueKey>
   <fieldType name="alphaOnlySort" class="solr.TextField" omitNorms="true" sortMissingLast="true">
     <analyzer>
       <tokenizer class="solr.KeywordTokenizerFactory"/>
@@ -119,6 +119,7 @@
   <field name="is_sponsored" type="boolean" indexed="true" required="false" stored="true"/>
   <field name="matchFullWords" type="text_ws" indexed="true" stored="false"/>
   <field name="matchWordOrder" type="shinglesAndNgramsTokType" indexed="true" stored="false"/>
+  <field name="id" type="string" indexed="true" required="true" stored="true"/>
   <field name="phrase" type="string" indexed="true" required="true" stored="true"/>
   <field name="phraseSpellchecking" type="prefixTokTypeNgram" indexed="true" stored="false"/>
   <field name="prefixTok" type="prefixTokType" indexed="true" stored="false"/>

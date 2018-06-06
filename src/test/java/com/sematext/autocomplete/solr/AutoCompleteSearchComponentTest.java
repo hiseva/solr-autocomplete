@@ -26,21 +26,21 @@ public class AutoCompleteSearchComponentTest extends SolrTestCaseJ4 {
     // to build with maven
     initCore("solrconfig.xml", "schema.xml", "solr");
 
-    assertU(adoc("phrase", "elvis presley", "is_sponsored", "true", "type", "dvd"));
-    assertU(adoc("phrase", "bob marley", "is_sponsored", "true", "type", "cd"));
-    assertU(adoc("phrase", "bob dylan", "is_sponsored", "false", "type", "book", "resalePrice", "15.99"));
-    assertU(adoc("phrase", "the doors", "is_sponsored", "false", "type", "dvd"));
-    assertU(adoc("phrase", "bob marley & the wailers", "is_sponsored", "true", "type", "dvd"));
-    assertU(adoc("phrase", "bono", "is_sponsored", "true", "type", "book"));
-    assertU(adoc("phrase", "bob marley & the wailers 2", "is_sponsored", "false", "type", "dvd", "resalePrice", "5.00"));
-    assertU(adoc("phrase", "bob marley & the wailers 3", "is_sponsored", "true", "type", "book", "resalePrice", "5.00"));
-    assertU(adoc("phrase", "bono and bob marley 1", "is_sponsored", "false", "type", "cd", "resalePrice", "3.18"));
-    assertU(adoc("phrase", "bono and bob marley 2", "is_sponsored", "true", "type", "book"));
-    assertU(adoc("phrase", "bono and bob marley 3", "is_sponsored", "false", "type", "dvd", "resalePrice", "7.22"));
-    assertU(adoc("phrase", "new york city", "is_sponsored", "true", "type", "book"));
-    assertU(adoc("phrase", "newton newton", "is_sponsored", "false", "type", "dvd"));
-    assertU(adoc("phrase", "the washington times article", "is_sponsored", "true", "type", "book"));
-    assertU(adoc("phrase", "times in washington", "is_sponsored", "true", "type", "book"));
+    assertU(adoc("id", "dvd-elvis presley", "phrase", "elvis presley", "is_sponsored", "true", "type", "dvd"));
+    assertU(adoc("id", "cd-bob marley", "phrase", "bob marley", "is_sponsored", "true", "type", "cd"));
+    assertU(adoc("id", "book-bob dylan", "phrase", "bob dylan", "is_sponsored", "false", "type", "book", "resalePrice", "15.99"));
+    assertU(adoc("id", "dvd-the doors", "phrase", "the doors", "is_sponsored", "false", "type", "dvd"));
+    assertU(adoc("id", "dvd-bob marley & the wailers", "phrase", "bob marley & the wailers", "is_sponsored", "true", "type", "dvd"));
+    assertU(adoc("id", "book-bono", "phrase", "bono", "is_sponsored", "true", "type", "book"));
+    assertU(adoc("id", "dvd-bob marley & the wailers 2", "phrase", "bob marley & the wailers 2", "is_sponsored", "false", "type", "dvd", "resalePrice", "5.00"));
+    assertU(adoc("id", "book-bob marley & the wailers 3", "phrase", "bob marley & the wailers 3", "is_sponsored", "true", "type", "book", "resalePrice", "5.00"));
+    assertU(adoc("id", "cd-bono and bob marley 1", "phrase", "bono and bob marley 1", "is_sponsored", "false", "type", "cd", "resalePrice", "3.18"));
+    assertU(adoc("id", "book-bono and bob marley 2", "phrase", "bono and bob marley 2", "is_sponsored", "true", "type", "book"));
+    assertU(adoc("id", "dvd-bono and bob marley 3", "phrase", "bono and bob marley 3", "is_sponsored", "false", "type", "dvd", "resalePrice", "7.22"));
+    assertU(adoc("id", "book-new york city", "phrase", "new york city", "is_sponsored", "true", "type", "book"));
+    assertU(adoc("id", "dvd-newton newton", "phrase", "newton newton", "is_sponsored", "false", "type", "dvd"));
+    assertU(adoc("id", "book-the washington times article", "phrase", "the washington times article", "is_sponsored", "true", "type", "book"));
+    assertU(adoc("id", "book-times in washington", "phrase", "times in washington", "is_sponsored", "true", "type", "book"));
     
     assertU("commit", commit());
   }
