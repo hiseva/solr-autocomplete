@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Solr managed schema - automatically generated - DO NOT EDIT -->
-<schema name="autocomplete-ngram" version="1.7">
+<schema name="autocomplete-ngram" version="1.6">
   <uniqueKey>id</uniqueKey>
   <fieldType name="alphaOnlySort" class="solr.TextField" omitNorms="true" sortMissingLast="true">
     <analyzer>
@@ -123,7 +123,7 @@
   <field name="phrase" type="string" indexed="true" required="true" stored="true"/>
   <field name="phraseSpellchecking" type="prefixTokTypeNgram" indexed="true" stored="false"/>
   <field name="prefixTok" type="prefixTokType" indexed="true" stored="false"/>
-  <field name="frequency" type="float" indexed="true" required="false" stored="false"/>
+  <field name="frequency" type="float" indexed="true" required="false" stored="true"/>
   <field name="price" type="string" indexed="false" required="false" stored="true"/>
   <field name="pureCompletion" type="prefixUnTokType" indexed="true" stored="false"/>
   <field name="resalePrice" type="float" indexed="true" required="false" stored="true"/>
