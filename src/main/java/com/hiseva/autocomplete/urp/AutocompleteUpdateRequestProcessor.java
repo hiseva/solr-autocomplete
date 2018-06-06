@@ -203,24 +203,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       if (doc.get(name) == null) {
         doc.addField(name, value);
       } else {
-        // for some fields we can't allow multiple values, like ID field phrase, so we have to perform this check
         SolrInputField f = doc.get(name);
-        
-        boolean valueExists = false;
-        
-        for (Object existingValue : f.getValues()) {
-          if (existingValue == null && value == null) {
-            valueExists = true;
-            break;
-          }
-          if (existingValue != null && value != null && existingValue.equals(value)) {
-            valueExists = true;
-            break;
-          }
-        }
-          
-        if (!valueExists) {
-          f.addValue(value);
+        if (f.getValue() == null) {
+          f.setValue(value);
         }
       }
     }
