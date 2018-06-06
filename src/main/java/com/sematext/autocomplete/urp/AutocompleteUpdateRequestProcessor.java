@@ -70,6 +70,8 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
 
         try {
+          Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
+
           for (String fieldName : fields) {
   
               boolean arrayField = fieldName.startsWith("[") && fieldName.endsWith("]");
@@ -96,42 +98,29 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                           phrases = phrase.split(" ");
                       }
 
-                      Map<String, Integer> uniquePhrases = new HashMap<>();
                       for (String value : phrases) {
                           String decoratedPhrase = decoratePhrase(value.trim(), doc);
-                          if (decoratedPhrase != null && decoratedPhrase != "") {
-                              uniquePhrases.put(decoratedPhrase, 1 + uniquePhrases.getOrDefault(decoratedPhrase, 0));
-                          }
-                      }
-
-                      for (String p : uniquePhrases.keySet()) {
-                          SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(p);
-                          addField(document, PHRASE, p);
-                          addField(document, TYPE, fieldName.substring(1, fieldName.length() - 1));
-                          addCount(document, FREQUENCY, uniquePhrases.get(p));
-                          addCopyAsIsFields(document, copyAsIsFieldsValues);
-                          try {
-                              solrAC.add(document);
-                          } catch (SolrServerException e) {
-                              e.printStackTrace();
-                          }
+                          addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1));
                       }
                   } else {
-                      String decoratedPhrase = decoratePhrase(phrase, doc);
-                      SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(decoratedPhrase);
-                      addField(document, PHRASE, decoratedPhrase);
-                      addField(document, TYPE, fieldName);
-                      addCount(document, FREQUENCY, 1);
-                      addCopyAsIsFields(document, copyAsIsFieldsValues);
-                      try {
-                          solrAC.add(document);
-                      } catch (SolrServerException e) {
-                          e.printStackTrace();
-                      }
+                      String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
+                      addPhrase(uniquePhrases, decoratedPhrase, fieldName);
                   }
               }
           }
 
+          for (String p : uniquePhrases.keySet()) {
+            SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(p);
+            addField(document, PHRASE, p);
+            addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
+            addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
+            addCopyAsIsFields(document, copyAsIsFieldsValues);
+            try {
+                solrAC.add(document);
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            }
+          }
           // not done any more, since users should be able to configure it as they want
           // solrAC.commit();
         } catch (SolrServerException e) {
@@ -142,7 +131,21 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
         super.processAdd(cmd);
     }
-    
+
+    private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type) {
+        if (phrase != null && phrase != "") {
+            Map<String, Object> d = new HashMap<>();
+            if (uniquePhrases.containsKey(phrase)) {
+                d = uniquePhrases.get(phrase);
+                d.put("count", 1 + (int) d.get("count"));
+            } else {
+                d.put("type", type);
+                d.put("count", 1);
+            }
+            uniquePhrases.put(phrase, d);
+        }
+    }
+
     /**
      * Can be overriden by subclasses, for instance, if AC phrase should not be just copied from
      * some phrase field but decorated before adding it to AC doc. Examples for decoration:
