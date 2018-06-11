@@ -156,7 +156,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     }
 
     private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type) {
-        if (phrase != null && phrase != "") {
+        if (phrase != null && !phrase.equals("")) {
             Map<String, Object> d = new HashMap<>();
             if (uniquePhrases.containsKey(phrase)) {
                 d = uniquePhrases.get(phrase);
