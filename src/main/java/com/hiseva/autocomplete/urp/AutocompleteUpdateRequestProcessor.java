@@ -187,12 +187,12 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         String resultString = phraseFieldValue.toLowerCase();
         //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
         //chars that need escaping \.[]{}()<>*+-=?^$|
-        resultString = resultString.replaceAll("[\\!\"#\\$%&\\(\\)\\*,\\-:;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
+        resultString = resultString.replaceAll("[\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
         resultString = resultString.replaceAll(" +", " ").trim();
-        if (resultString.matches("^['@\\./\\+_].*")) {
+        if (resultString.matches("^[#\\$%&'@\\./\\+_\\-:].*")) {
             resultString = resultString.substring(1, resultString.length());
         }
-        if (resultString.matches(".*['@\\./\\+_]$")) {
+        if (resultString.matches(".*[#\\$%&'@\\./\\+_\\-:]$")) {
             resultString = resultString.substring(0, resultString.length() - 1);
         }
         return resultString.trim();
