@@ -138,6 +138,12 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 solrAC.add(document);
             } catch (SolrServerException e) {
                 e.printStackTrace();
+            } catch (Throwable thr) {
+                if (thr.getMessage().contains("version conflict")) {
+                    LOG.INFO(thr.getMessage());
+                } else {
+                    LOG.error("Error while updating the document", thr);
+                }
             }
           }
           // not done any more, since users should be able to configure it as they want
@@ -145,11 +151,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         } catch (SolrServerException e) {
           LOG.error("Error while updating the document", e);
         } catch (Throwable thr) {
-          if (thr.getMessage().contains("version conflict")) {
-            LOG.warn(thr.getMessage());
-          } else {
-            LOG.error("Error while updating the document", thr);
-          }
+          LOG.error("Error while updating the document", thr);
         }
 
         super.processAdd(cmd);
@@ -188,8 +190,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             String resultString = phraseFieldValue.toLowerCase();
             //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
             //chars that need escaping \.[]{}()<>*+-=?^$|
-            resultString = resultString.replaceAll("[\\s\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
-            resultString = resultString.replaceAll(" +", " ").trim();
+            resultString = resultString.replaceAll("[\\s\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ").trim();
             if (resultString.matches("^[#\\$%&'@\\./\\+_\\-:].*")) {
                 resultString = resultString.substring(1, resultString.length());
             }
