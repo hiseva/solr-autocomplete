@@ -184,18 +184,22 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
      * @return .
      */
     protected String decoratePhrase(String phraseFieldValue, SolrInputDocument mainIndexDoc) {
-        String resultString = phraseFieldValue.toLowerCase();
-        //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-        //chars that need escaping \.[]{}()<>*+-=?^$|
-        resultString = resultString.replaceAll("[\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
-        resultString = resultString.replaceAll(" +", " ").trim();
-        if (resultString.matches("^[#\\$%&'@\\./\\+_\\-:].*")) {
-            resultString = resultString.substring(1, resultString.length());
+        if (phraseFieldValue.matches(".*\\p{Alpha}+.*")) {
+            String resultString = phraseFieldValue.toLowerCase();
+            //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+            //chars that need escaping \.[]{}()<>*+-=?^$|
+            resultString = resultString.replaceAll("[\\s\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ");
+            resultString = resultString.replaceAll(" +", " ").trim();
+            if (resultString.matches("^[#\\$%&'@\\./\\+_\\-:].*")) {
+                resultString = resultString.substring(1, resultString.length());
+            }
+            if (resultString.matches(".*[#\\$%&'@\\./\\+_\\-:]$")) {
+                resultString = resultString.substring(0, resultString.length() - 1);
+            }
+            return resultString.replaceAll("\\s+", " ").trim();
+        } else {
+            return null;
         }
-        if (resultString.matches(".*[#\\$%&'@\\./\\+_\\-:]$")) {
-            resultString = resultString.substring(0, resultString.length() - 1);
-        }
-        return resultString.trim();
     }
     
     private void addField(SolrInputDocument doc, String name, String value) {
