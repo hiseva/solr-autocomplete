@@ -140,7 +140,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 e.printStackTrace();
             } catch (Throwable thr) {
                 if (thr.getMessage().contains("version conflict")) {
-                    LOG.INFO(thr.getMessage());
+                    LOG.info(thr.getMessage());
                 } else {
                     LOG.error("Error while updating the document", thr);
                 }
