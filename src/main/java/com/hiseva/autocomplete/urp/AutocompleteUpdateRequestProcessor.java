@@ -191,13 +191,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             //\p{Punct}: One of !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
             //chars that need escaping \.[]{}()<>*+-=?^$|
             resultString = resultString.replaceAll("[\\s\\!\"\\(\\)\\*,;\\<\\=\\>\\?\\[\\]\\^\\\\`\\{\\|\\}~]+", " ").trim();
-            if (resultString.matches("^[#\\$%&'@\\./\\+_\\-:].*")) {
-                resultString = resultString.substring(1, resultString.length());
-            }
-            if (resultString.matches(".*[#\\$%&'@\\./\\+_\\-:]$")) {
-                resultString = resultString.substring(0, resultString.length() - 1);
-            }
-            return resultString.replaceAll("\\s+", " ").trim();
+            resultString = resultString.replaceFirst("^[\\h#\\$%&'@\\./\\+_\\-:]+", "");
+            resultString = resultString.replaceFirst("[\\h#\\$%&'@\\./\\+_\\-:]+$", "");
+            return resultString.replaceAll("\\s+", " ");
         } else {
             return null;
         }
