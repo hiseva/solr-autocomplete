@@ -67,6 +67,9 @@ To index phrase for autocomplete as part of the main indexing process, edit your
       <!--Fields which will be added, [ ] fields will be treated as array fields which will
           be tokenized by 'separator', { } fields will be tokenized by white space -->
       <str name="fields">title,[attribution],{tags},category</str>
+      <!-- Corresponding weights the above fields for frequency boost. Optional -->
+      <str name="fieldWeights">100,1,1,1</str>
+      <!-- Fields that will be copied over from the main index. Optional -->
       <str name="copyAsIsFields">userid,genre</str>
       <!-- A subset of copyAsIsFields used for partitioning phrase -->
       <str name="idFields">userid</str>
