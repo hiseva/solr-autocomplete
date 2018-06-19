@@ -8,7 +8,7 @@ Please check the sematext project for basic setup and usage instructions.
 
 We updated the realtime `UpdateRequestProcessor` to support the following functions:
 
-* frequency boost for suggested phrases
+* weighted frequency boost for suggested phrases
 * composite id for partitioning phrase by user for personalized and secure suggestions
 * basic text cleaning
 
@@ -96,9 +96,9 @@ Set up autoCommit with a relatively small commit interval for more accurate freq
 
 Note: add `fl=phrase` tot the requests to reduce the size of the payload.
 
-### Frequency boost for suggested phrases
+### Weighted frequency boost for suggested phrases
 
-To turn on frequency boost, add `bf=frequency` to the autocomplete solr request. The phrase frequencies are log10 transformed instead of raw counts.
+To turn on frequency boost, add `bf=frequency` to the autocomplete solr request. The phrase frequencies are log10 transformed instead of raw counts. It is possible to set optional field based weights applied at indexing time. See the above section on Main Solr core solrconfig.xml for how to set it. 
 
 ```
 http://local.hiseva.com:8983/solr/main_ac/select?q=ma&qt=dismax_ac&bf=frequency
