@@ -23,6 +23,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
     private SolrCore core;
 
     private List<String> fields = new ArrayList<String>();
+    private List<Integer> fieldWeights = new ArrayList();
     private List<String> copyAsIsFields = new ArrayList<String>();
     private List<String> idFields = new ArrayList<String>();
 
@@ -42,6 +43,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
         this.separator = (String) args.get("separator");
 
         String fieldsStr = (String) args.get("fields");
+        String fieldWeightsStr = (String) args.get("fieldWeights");
         String copyAsIsFieldsStr = (String) args.get("copyAsIsFields");
         String idFieldsStr = (String) args.get("idFields");
 
@@ -54,7 +56,14 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
         while (tok.hasMoreTokens()) {
             fields.add(tok.nextToken().trim());
         }
-        
+
+        if (fieldWeightsStr != null) {
+            String [] fs = fieldWeightsStr.split(",");
+            for (String f : fs) {
+                fieldWeights.add(Integer.parseInt(f.trim()));
+            }
+        }
+
         if (copyAsIsFieldsStr != null) {
           String [] fs = copyAsIsFieldsStr.split(",");
           for (String f : fs) {
@@ -78,7 +87,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             this.solrACServer = new EmbeddedSolrServer(core.getCoreContainer(), solrAC);
         }
 
-        return new AutocompleteUpdateRequestProcessor(solrACServer, fields, copyAsIsFields, idFields, separator, nextURP);
+        return new AutocompleteUpdateRequestProcessor(solrACServer, fields, fieldWeights, copyAsIsFields, idFields, separator, nextURP);
     }
 
     @Override
