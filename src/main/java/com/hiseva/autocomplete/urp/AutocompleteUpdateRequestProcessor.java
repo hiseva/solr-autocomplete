@@ -42,14 +42,16 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
     private SolrClient solrAC;
     private List<String> fields;
+    private List<Integer> fieldWeights;
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
         this.solrAC = solrAC;
         this.fields = fields;
+        this.fieldWeights = fieldWeights;
         this.copyAsIsFields = copyAsIsFields;
         this.idFields = idFields;
         this.separator = separator;
@@ -71,7 +73,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         for (String name: idFields) {
             idField.add(name);
         }
-        ArrayList<String> idFieldValues = new ArrayList<>();
+        List<String> idFieldValues = new ArrayList<>();
         int index = 0;
         for (String fieldName : copyAsIsFields) {
           SolrInputField field = doc.getField(fieldName);
@@ -89,8 +91,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         try {
           Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
 
-          for (String fieldName : fields) {
-  
+          for (int i = 0; i < fields.size(); i++) {
+
+              String fieldName =  fields.get(i);
               boolean arrayField = fieldName.startsWith("[") && fieldName.endsWith("]");
               boolean tokenizeField = fieldName.startsWith("{") && fieldName.endsWith("}");
   
@@ -104,6 +107,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
               if (field != null && field.getValue() != null) {
   
                   String phrase = field.getValue().toString();
+                  Integer weight = fieldWeights != null && fieldWeights.size() > 0? fieldWeights.get(i) : 1;
   
                   if (arrayField || tokenizeField) {
   
@@ -117,11 +121,11 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
                       for (String value : phrases) {
                           String decoratedPhrase = decoratePhrase(value.trim(), doc);
-                          addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1));
+                          addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1), weight);
                       }
                   } else {
                       String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
-                      addPhrase(uniquePhrases, decoratedPhrase, fieldName);
+                      addPhrase(uniquePhrases, decoratedPhrase, fieldName, weight);
                   }
               }
           }
@@ -157,15 +161,15 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         super.processAdd(cmd);
     }
 
-    private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type) {
+    private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type, Integer weight) {
         if (phrase != null && !phrase.equals("")) {
             Map<String, Object> d = new HashMap<>();
             if (uniquePhrases.containsKey(phrase)) {
                 d = uniquePhrases.get(phrase);
-                d.put("count", 1 + (int) d.get("count"));
+                d.put("count", 1 * weight + (int) d.get("count"));
             } else {
                 d.put("type", type);
-                d.put("count", 1);
+                d.put("count", 1 * weight);
             }
             uniquePhrases.put(phrase, d);
         }
