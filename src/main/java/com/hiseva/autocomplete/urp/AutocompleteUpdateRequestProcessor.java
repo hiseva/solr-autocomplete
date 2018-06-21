@@ -107,7 +107,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
               if (field != null && field.getValue() != null) {
   
                   String phrase = field.getValue().toString();
-                  Integer weight = fieldWeights != null? fieldWeights.get(i) : 1;
+                  Integer weight = fieldWeights != null && fieldWeights.size() > 0? fieldWeights.get(i) : 1;
   
                   if (arrayField || tokenizeField) {
   
