@@ -203,27 +203,16 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
     
-    private void addField(SolrInputDocument doc, String name, String value) {
-      // find if such field already exists
-      if (doc.get(name) == null) {
-        doc.addField(name, value);
-      } else {
-        SolrInputField f = doc.get(name);
-        if (f.getValue() == null) {
-          f.setValue(value);
-        }
-      }
-    }
-
-    private void addField(SolrInputDocument doc, String name, Collection<Object> values) {
-      // find if such field already exists
-      if (doc.get(name) == null) {
-        if (values != null) {
-            for (Object value : values) {
+    private void addField(SolrInputDocument doc, String name, Object value) {
+        if (value != null) {
+            // find if such field already exists
+            if (doc.get(name) == null) {
                 doc.addField(name, value);
+            } else {
+                SolrInputField f = doc.get(name);
+                f.setValue(value);
             }
         }
-      }
     }
 
     private void addCount(SolrInputDocument doc, String name, Integer value) {
