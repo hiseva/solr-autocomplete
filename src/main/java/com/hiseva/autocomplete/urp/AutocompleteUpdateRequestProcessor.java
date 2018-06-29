@@ -130,25 +130,28 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
               }
           }
 
+          List<SolrInputDocument> documents = new ArrayList<>();
           for (String p : uniquePhrases.keySet()) {
-            String id = idPrefix != null ? idPrefix + "-" + p : p;
-            SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
-            addField(document, ID, id);
-            addField(document, PHRASE, p);
-            addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
-            addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
-            addCopyAsIsFields(document, copyAsIsFieldsValues);
-            try {
-                solrAC.add(document);
-            } catch (SolrServerException e) {
-                e.printStackTrace();
-            } catch (Throwable thr) {
-                if (thr.getMessage().contains("version conflict")) {
-                    LOG.info(thr.getMessage());
-                } else {
-                    LOG.error("Error while updating the document", thr);
-                }
-            }
+              String id = idPrefix != null ? idPrefix + "-" + p : p;
+              SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
+              addField(document, ID, id);
+              addField(document, PHRASE, p);
+              addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
+              addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
+              addCopyAsIsFields(document, copyAsIsFieldsValues);
+              documents.add(document);
+          }
+
+          try {
+              solrAC.add(documents);
+          } catch (SolrServerException e) {
+              e.printStackTrace();
+          } catch (Throwable thr) {
+              if (thr.getMessage().contains("version conflict")) {
+                  LOG.info(thr.getMessage());
+              } else {
+                  LOG.error("Error while updating the document", thr);
+              }
           }
           // not done any more, since users should be able to configure it as they want
           // solrAC.commit();
