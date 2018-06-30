@@ -136,32 +136,21 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
                 addField(document, ID, id);
                 addField(document, PHRASE, p);
-                addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
+                addField(document, TYPE, uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
             }
 
-            try {
-                solrAC.add(documents);
-            } catch (SolrServerException e) {
-                e.printStackTrace();
-            } catch (Throwable thr) {
-                if (thr.getMessage().contains("version conflict")) {
-                    LOG.info(thr.getMessage());
-                } else {
-                    LOG.error("Error while updating the document", thr);
-                }
-            }
+            solrAC.add(documents);
             // not done any more, since users should be able to configure it as they want
             // solrAC.commit();
-            super.processAdd(cmd);
-
         } catch (SolrServerException e) {
             e.printStackTrace();
         } catch (Throwable thr) {
             LOG.error("Error while updating the document", thr);
         }
+        super.processAdd(cmd);
     }
 
     private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type, Integer weight) {
