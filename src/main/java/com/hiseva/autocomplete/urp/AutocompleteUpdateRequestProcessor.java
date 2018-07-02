@@ -35,6 +35,7 @@ import java.lang.Math;
 public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessor.class);
 
+    static final String VERSION = "_version_";
     static final String ID = "id";
     static final String PHRASE = "phrase";
     static final String TYPE = "type";
@@ -134,6 +135,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             for (String p : uniquePhrases.keySet()) {
                 String id = idPrefix != null ? idPrefix + "-" + p : p;
                 SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
+                addField(document, VERSION, 0);
                 addField(document, ID, id);
                 addField(document, PHRASE, p);
                 addField(document, TYPE, uniquePhrases.get(p).get("type"));
@@ -237,9 +239,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         SolrInputDocument tmp = new SolrInputDocument();
         
         for (String fieldName : doc.getFieldNames()) {
-          if (fieldName != "_version_") {
-              tmp.addField(fieldName, doc.getFieldValue(fieldName));
-          }
+          tmp.addField(fieldName, doc.getFieldValue(fieldName));
         }
         return tmp;
       } else {
