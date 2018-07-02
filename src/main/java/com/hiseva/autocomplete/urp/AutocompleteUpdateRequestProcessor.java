@@ -47,6 +47,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
+    private Map<String, Map<String, Object>> uniquePhrases;
 
     public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
@@ -56,6 +57,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         this.copyAsIsFields = copyAsIsFields;
         this.idFields = idFields;
         this.separator = separator;
+        this.uniquePhrases = new HashMap<>();
     }
 
     @Override
@@ -90,8 +92,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         String idPrefix = String.join("-", idFieldValues);
 
         try {
-            Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
-            List<SolrInputDocument> documents = new ArrayList<>();
+
 
             for (int i = 0; i < fields.size(); i++) {
 
@@ -132,6 +133,14 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 }
             }
 
+        } catch (SolrServerException e) {
+            e.printStackTrace();
+        } catch (Throwable thr) {
+            LOG.error("Error while updating the document", thr);
+        }
+
+        if (cmd.isLastDocInBatch) {
+            List<SolrInputDocument> documents = new ArrayList<>();
             for (String p : uniquePhrases.keySet()) {
                 String id = idPrefix != null ? idPrefix + "-" + p : p;
                 SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
@@ -143,15 +152,17 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
             }
-
-            solrAC.add(documents);
-            // not done any more, since users should be able to configure it as they want
-            // solrAC.commit();
-        } catch (SolrServerException e) {
-            e.printStackTrace();
-        } catch (Throwable thr) {
-            LOG.error("Error while updating the document", thr);
+            try {
+                solrAC.add(documents);
+                uniquePhrases = new HashMap<>();
+            } catch (SolrServerException e) {
+                e.printStackTrace();
+            } catch (Throwable thr) {
+                LOG.error("Error while updating the document", thr);
+            }
         }
+        // not done any more, since users should be able to configure it as they want
+        // solrAC.commit();
         super.processAdd(cmd);
     }
 
