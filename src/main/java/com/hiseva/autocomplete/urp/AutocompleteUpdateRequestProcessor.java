@@ -237,7 +237,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         SolrInputDocument tmp = new SolrInputDocument();
         
         for (String fieldName : doc.getFieldNames()) {
-          tmp.addField(fieldName, doc.getFieldValue(fieldName));
+          if (fieldName != "_version_") {
+              tmp.addField(fieldName, doc.getFieldValue(fieldName));
+          }
         }
         return tmp;
       } else {
