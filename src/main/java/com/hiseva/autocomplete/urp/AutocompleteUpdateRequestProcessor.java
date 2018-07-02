@@ -35,6 +35,7 @@ import java.lang.Math;
 public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessor.class);
 
+    static final String VERSION = "_version_";
     static final String ID = "id";
     static final String PHRASE = "phrase";
     static final String TYPE = "type";
@@ -89,75 +90,68 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         String idPrefix = String.join("-", idFieldValues);
 
         try {
-          Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
+            Map<String, Map<String, Object>> uniquePhrases = new HashMap<>();
+            List<SolrInputDocument> documents = new ArrayList<>();
 
-          for (int i = 0; i < fields.size(); i++) {
+            for (int i = 0; i < fields.size(); i++) {
 
-              String fieldName =  fields.get(i);
-              boolean arrayField = fieldName.startsWith("[") && fieldName.endsWith("]");
-              boolean tokenizeField = fieldName.startsWith("{") && fieldName.endsWith("}");
-  
-              SolrInputField field = null;
-              if (arrayField || tokenizeField) {
-                  field = doc.getField(fieldName.substring(1, fieldName.length() - 1));
-              } else {
-                  field = doc.getField(fieldName);
-              }
-  
-              if (field != null && field.getValue() != null) {
-  
-                  String phrase = field.getValue().toString();
-                  Integer weight = fieldWeights != null && fieldWeights.size() > 0? fieldWeights.get(i) : 1;
-  
-                  if (arrayField || tokenizeField) {
-  
-                      String[] phrases = null;
+                String fieldName = fields.get(i);
+                boolean arrayField = fieldName.startsWith("[") && fieldName.endsWith("]");
+                boolean tokenizeField = fieldName.startsWith("{") && fieldName.endsWith("}");
 
-                      if (arrayField) {
-                          phrases = phrase.split(separator);
-                      } else {
-                          phrases = phrase.split(" ");
-                      }
-
-                      for (String value : phrases) {
-                          String decoratedPhrase = decoratePhrase(value.trim(), doc);
-                          addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1), weight);
-                      }
-                  } else {
-                      String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
-                      addPhrase(uniquePhrases, decoratedPhrase, fieldName, weight);
-                  }
-              }
-          }
-
-          for (String p : uniquePhrases.keySet()) {
-            String id = idPrefix != null ? idPrefix + "-" + p : p;
-            SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
-            addField(document, ID, id);
-            addField(document, PHRASE, p);
-            addField(document, TYPE, (String) uniquePhrases.get(p).get("type"));
-            addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
-            addCopyAsIsFields(document, copyAsIsFieldsValues);
-            try {
-                solrAC.add(document);
-            } catch (SolrServerException e) {
-                e.printStackTrace();
-            } catch (Throwable thr) {
-                if (thr.getMessage().contains("version conflict")) {
-                    LOG.info(thr.getMessage());
+                SolrInputField field = null;
+                if (arrayField || tokenizeField) {
+                    field = doc.getField(fieldName.substring(1, fieldName.length() - 1));
                 } else {
-                    LOG.error("Error while updating the document", thr);
+                    field = doc.getField(fieldName);
+                }
+
+                if (field != null && field.getValue() != null) {
+
+                    String phrase = field.getValue().toString();
+                    Integer weight = fieldWeights != null && fieldWeights.size() > 0 ? fieldWeights.get(i) : 1;
+
+                    if (arrayField || tokenizeField) {
+
+                        String[] phrases = null;
+
+                        if (arrayField) {
+                            phrases = phrase.split(separator);
+                        } else {
+                            phrases = phrase.split(" ");
+                        }
+
+                        for (String value : phrases) {
+                            String decoratedPhrase = decoratePhrase(value.trim(), doc);
+                            addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1), weight);
+                        }
+                    } else {
+                        String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
+                        addPhrase(uniquePhrases, decoratedPhrase, fieldName, weight);
+                    }
                 }
             }
-          }
-          // not done any more, since users should be able to configure it as they want
-          // solrAC.commit();
-        } catch (SolrServerException e) {
-          LOG.error("Error while updating the document", e);
-        } catch (Throwable thr) {
-          LOG.error("Error while updating the document", thr);
-        }
 
+            for (String p : uniquePhrases.keySet()) {
+                String id = idPrefix != null ? idPrefix + "-" + p : p;
+                SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
+                addField(document, VERSION, 0);
+                addField(document, ID, id);
+                addField(document, PHRASE, p);
+                addField(document, TYPE, uniquePhrases.get(p).get("type"));
+                addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
+                addCopyAsIsFields(document, copyAsIsFieldsValues);
+                documents.add(document);
+            }
+
+            solrAC.add(documents);
+            // not done any more, since users should be able to configure it as they want
+            // solrAC.commit();
+        } catch (SolrServerException e) {
+            e.printStackTrace();
+        } catch (Throwable thr) {
+            LOG.error("Error while updating the document", thr);
+        }
         super.processAdd(cmd);
     }
 
@@ -203,27 +197,16 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
     
-    private void addField(SolrInputDocument doc, String name, String value) {
-      // find if such field already exists
-      if (doc.get(name) == null) {
-        doc.addField(name, value);
-      } else {
-        SolrInputField f = doc.get(name);
-        if (f.getValue() == null) {
-          f.setValue(value);
-        }
-      }
-    }
-
-    private void addField(SolrInputDocument doc, String name, Collection<Object> values) {
-      // find if such field already exists
-      if (doc.get(name) == null) {
-        if (values != null) {
-            for (Object value : values) {
+    private void addField(SolrInputDocument doc, String name, Object value) {
+        if (value != null) {
+            // find if such field already exists
+            if (doc.get(name) == null) {
                 doc.addField(name, value);
+            } else {
+                SolrInputField f = doc.get(name);
+                f.setValue(value);
             }
         }
-      }
     }
 
     private void addCount(SolrInputDocument doc, String name, Integer value) {
