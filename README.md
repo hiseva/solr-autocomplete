@@ -30,7 +30,7 @@ Build the package with
 mvn clean package
 ```
 
-And copy `target/st-AutoComplete-xxx.jar` to your `$SOLR_HOME/server/solr-webapp/webapp/WEB-INF/lib/` directory.
+And copy `target/seva-AutoComplete-xxx.jar` to your `$SOLR_HOME/server/solr-webapp/webapp/WEB-INF/lib/` directory.
 
 Build and copy `st-ReSearcher-core-xxx.jar` to the same directory as in the sematext instruction.
 
