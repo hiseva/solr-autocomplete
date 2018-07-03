@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.sematext.autocomplete</groupId>
-  <artifactId>st-AutoComplete</artifactId>
+  <groupId>com.hiseva.autocomplete</groupId>
+  <artifactId>seva-AutoComplete</artifactId>
   <name>AutoComplete</name>
   <version>1.6.7.1.1-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>Solr component for implementing suggest-as-you-type and auto-complete functionality</description>
-  <url>http://sematext.com/open-source/index.html</url>
+  <url>https://github.com/hiseva/solr-autocomplete</url>
 
   <licenses>
     <license>
@@ -18,8 +18,8 @@
   </licenses>
 
   <organization>
-    <name>Sematext</name>
-    <url>http://sematext.com</url>
+    <name>Seva</name>
+    <url>https://www.hiseva.com</url>
   </organization>
 
   <developers>
@@ -29,12 +29,18 @@
       <email>tien.nguyenmanh@sematext.com</email>
       <organization>Sematext</organization>
     </developer>
+    <developer>
+      <id>maggiexyz</id>
+      <name>Maggie Xiong</name>
+      <email>maggie@hiseva.com</email>
+      <organization>Seva</organization>
+    </developer>
   </developers>
 
   <scm>
-    <connection>scm:git:git@github.com:sematext/solr-autocomplete.git</connection>
-    <developerConnection>scm:git:git@github.com:sematext/solr-autocomplete.git</developerConnection>
-    <url>https://github.com/sematext/solr-autocomplete</url>
+    <connection>scm:git:git@github.com:hiseva/solr-autocomplete.git</connection>
+    <developerConnection>scm:git:git@github.com:hiseva/solr-autocomplete.git</developerConnection>
+    <url>https://github.com/hiseva/solr-autocomplete</url>
     <tag>HEAD</tag>
   </scm>
 
