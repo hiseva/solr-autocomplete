@@ -135,10 +135,10 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             for (String p : uniquePhrases.keySet()) {
                 String id = idPrefix != null ? idPrefix + "-" + p : p;
                 SolrInputDocument document = fetchExistingOrCreateNewSolrDoc(id);
-                addField(document, VERSION, 0);
-                addField(document, ID, id);
-                addField(document, PHRASE, p);
-                addField(document, TYPE, uniquePhrases.get(p).get("type"));
+                document.addField(VERSION, 0);
+                document.addField(ID, id);
+                document.addField(PHRASE, p);
+                document.addField(TYPE, uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
@@ -196,18 +196,6 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             return null;
         }
     }
-    
-    private void addField(SolrInputDocument doc, String name, Object value) {
-        if (value != null) {
-            // find if such field already exists
-            if (doc.get(name) == null) {
-                doc.addField(name, value);
-            } else {
-                SolrInputField f = doc.get(name);
-                f.setValue(value);
-            }
-        }
-    }
 
     private void addCount(SolrInputDocument doc, String name, Integer value) {
         // find if such field already exists
@@ -237,10 +225,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       } else if (res.getResults().size() == 1) {
         SolrDocument doc = res.getResults().get(0);
         SolrInputDocument tmp = new SolrInputDocument();
-        
-        for (String fieldName : doc.getFieldNames()) {
-          tmp.addField(fieldName, doc.getFieldValue(fieldName));
-        }
+        tmp.addField(FREQUENCY, doc.getFieldValue(FREQUENCY));
         return tmp;
       } else {
         throw new IllegalStateException("Query with params : " + p + " returned more than 1 hit!");
@@ -254,7 +239,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             Collection<Object> values = f.getValues();
             
             if (values != null && values.size() > 0) {
-              addField(doc, f.getName(), values);
+              doc.addField(f.getName(), values);
             }
           }
         }
