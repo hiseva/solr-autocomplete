@@ -17,6 +17,8 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.core.SolrCore;
+import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.slf4j.Logger;
@@ -41,15 +43,18 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     static final String TYPE = "type";
     static final String FREQUENCY = "frequency";
 
+    private SolrCore core;
     private SolrClient solrAC;
     private List<String> fields;
     private List<Integer> fieldWeights;
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
+    private AutocompletePhraseCache phraseCache;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrCore core, SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
+        this.core = core;
         this.solrAC = solrAC;
         this.fields = fields;
         this.fieldWeights = fieldWeights;
@@ -123,7 +128,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
                         for (String value : phrases) {
                             String decoratedPhrase = decoratePhrase(value.trim(), doc);
-                            addPhrase(uniquePhrases, decoratedPhrase, fieldName.substring(1, fieldName.length() - 1), weight);
+                            phraseCache.addPhrase(decoratedPhrase, fieldName.substring(1, fieldName.length() - 1), weight);
                         }
                     } else {
                         String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
@@ -155,19 +160,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         super.processAdd(cmd);
     }
 
-    private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type, Integer weight) {
-        if (phrase != null && !phrase.equals("")) {
-            Map<String, Object> d = new HashMap<>();
-            if (uniquePhrases.containsKey(phrase)) {
-                d = uniquePhrases.get(phrase);
-                d.put("count", 1 * weight + (int) d.get("count"));
-            } else {
-                d.put("type", type);
-                d.put("count", 1 * weight);
-            }
-            uniquePhrases.put(phrase, d);
-        }
-    }
+
 
     /**
      * Can be overriden by subclasses, for instance, if AC phrase should not be just copied from
@@ -212,25 +205,6 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
-    private SolrInputDocument fetchExistingOrCreateNewSolrDoc(String id) throws SolrServerException, IOException {
-      Map<String, String> p = new HashMap<String, String>();
-      p.put("q", ID + ":\"" + ClientUtils.escapeQueryChars(id) + "\"");
-      
-      SolrParams params = new MapSolrParams(p);
-      
-      QueryResponse res = solrAC.query(params);
-      
-      if (res.getResults().size() == 0) {
-        return new SolrInputDocument();
-      } else if (res.getResults().size() == 1) {
-        SolrDocument doc = res.getResults().get(0);
-        SolrInputDocument tmp = new SolrInputDocument();
-        tmp.addField(FREQUENCY, doc.getFieldValue(FREQUENCY));
-        return tmp;
-      } else {
-        throw new IllegalStateException("Query with params : " + p + " returned more than 1 hit!");
-      }
-    }
 
     private void addCopyAsIsFields(SolrInputDocument doc, SolrInputField[] copyAsIsFieldsValues) {
       if (copyAsIsFieldsValues != null) {

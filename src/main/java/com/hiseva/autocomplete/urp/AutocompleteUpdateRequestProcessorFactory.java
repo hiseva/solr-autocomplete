@@ -87,7 +87,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             this.solrACServer = new EmbeddedSolrServer(core.getCoreContainer(), solrAC);
         }
 
-        return new AutocompleteUpdateRequestProcessor(solrACServer, fields, fieldWeights, copyAsIsFields, idFields, separator, nextURP);
+        return new AutocompleteUpdateRequestProcessor(core, solrACServer, fields, fieldWeights, copyAsIsFields, idFields, separator, nextURP);
     }
 
     @Override
