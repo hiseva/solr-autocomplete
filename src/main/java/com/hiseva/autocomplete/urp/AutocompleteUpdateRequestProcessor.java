@@ -61,6 +61,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         this.copyAsIsFields = copyAsIsFields;
         this.idFields = idFields;
         this.separator = separator;
+        this.phraseCache = phraseCache;
     }
 
     @Override
@@ -132,7 +133,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                         }
                     } else {
                         String decoratedPhrase = decoratePhrase(phrase.trim(), doc);
-                        addPhrase(uniquePhrases, decoratedPhrase, fieldName, weight);
+                        phraseCache.addPhrase(uniquePhrases, decoratedPhrase, fieldName, weight);
                     }
                 }
             }

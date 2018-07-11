@@ -3,6 +3,7 @@ package com.hiseva.autocomplete.urp;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +38,7 @@ public class AutocompletePhraseCache {
 
     private final ScheduledExecutorService cacheCleaner = Executors.newScheduledThreadPool(1);
 
-    AutocompletePhraseCache(SolrClient solrAC) {
+    AutocompletePhraseCache(SolrClient solrAC:) {
         this.solrAC = solrAC;
         this.phrases_live = new ConcurrentHashMap<>();
         cacheCleaner.schedule(new Runnable() {
@@ -58,25 +60,27 @@ public class AutocompletePhraseCache {
         phrases_live = new ConcurrentHashMap<>();
         wl.unlock();
 
-        // flush to solr and clear phrases_committing as we go (maybe don't have to actually clear?)
-        solrAC.commit(phrases_committing.values().toDoc);
+        // flush to solr and clear phrases_committing
+        ArrayList<SolrInputDocument> phraseDocs = new ArrayList<>();
+        for (String phrase: phrases_committing.keySet()) {
+            AutocompleteDoc phraseSolr = fetchSolrPhrase(phrase);
+            phrases_committing.get(phrase).add(phraseSolr);
+            phraseDocs.add(phrases_committing.get(phrase).toSolrInputDoc());
+        }
 
-        // blank out phrases_committing to save time not looking it up
-        wl.lock();
-        phrases_committing = null;
-        wl.unlock();
-    }
-
-
-
-    private void commitDoc(AutocompleteDoc doc) {
         try {
-            throw new SolrServerException("solr!");
+            solrAC.add(phraseDocs);
+            solrAC.commit(true, true);
         } catch (SolrServerException e) {
             e.printStackTrace();
         } catch (Throwable thr) {
             LOG.error("Error while updating the document", thr);
         }
+
+        // blank out phrases_committing to save time not looking it up
+        wl.lock();
+        phrases_committing = null;
+        wl.unlock();
     }
 
     // returns new count for this phrase
@@ -104,6 +108,10 @@ public class AutocompletePhraseCache {
         } finally {
             rl.unlock();
         }
+    }
+
+    private AutocompleteDoc fetchSolrPhrase(String phrase) {
+
     }
 
     private SolrInputDocument fetchExistingOrCreateNewSolrDoc(String id) throws SolrServerException, IOException {
