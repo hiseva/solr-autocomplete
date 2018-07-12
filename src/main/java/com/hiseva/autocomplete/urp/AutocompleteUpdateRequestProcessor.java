@@ -8,6 +8,7 @@
  */
 package com.hiseva.autocomplete.urp;
 
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -17,11 +18,14 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.schema.IndexSchema;
+import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.validation.SchemaFactoryLoader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,15 +46,17 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     static final String FREQUENCY = "frequency";
 
     private SolrClient solrAC;
+    private Map<String, SchemaField> schema;
     private List<String> fields;
     private List<Integer> fieldWeights;
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, Map<String, SchemaField> schema, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
         this.solrAC = solrAC;
+        this.schema = schema;
         this.fields = fields;
         this.fieldWeights = fieldWeights;
         this.copyAsIsFields = copyAsIsFields;
@@ -138,7 +144,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 document.addField(VERSION, 0);
                 document.addField(ID, id);
                 document.addField(PHRASE, p);
-                document.addField(TYPE, uniquePhrases.get(p).get("type"));
+                addField(document, TYPE, (HashSet) uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
@@ -157,14 +163,19 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
     private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type, Integer weight) {
         if (phrase != null && !phrase.equals("")) {
-            Map<String, Object> d = new HashMap<>();
+            Map<String, Object> d;
+            Set<String> types;
             if (uniquePhrases.containsKey(phrase)) {
                 d = uniquePhrases.get(phrase);
-                d.put("count", 1 * weight + (int) d.get("count"));
             } else {
-                d.put("type", type);
-                d.put("count", 1 * weight);
+                d = new HashMap<>();
+                d.put("type", new HashSet<>());
             }
+            d.put("count", 1 * weight + (int) d.getOrDefault("count", 0));
+            types = (HashSet<String>) d.get("type");
+            types.add(type);
+            d.put("type", types);
+
             uniquePhrases.put(phrase, d);
         }
     }
@@ -212,6 +223,40 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
+    private void addField(SolrInputDocument doc, String name, Collection<Object> values) {
+        if (doc.get(name) == null) {
+            if (values != null) {
+                for (Object value : values) {
+                    doc.addField(name, value);
+                }
+            }
+        } else {
+            SolrInputField f = doc.get(name);
+
+            for (Object value : values) {
+                if (value == null) {
+                    continue;
+                }
+                boolean valueExists = false;
+
+                for (Object existingValue : f.getValues()) {
+                    if (existingValue != null && existingValue.equals(value)) {
+                        valueExists = true;
+                        break;
+                    }
+                }
+
+                if (!valueExists) {
+                    if (schema.get(name).multiValued()) {
+                        f.addValue(value);
+                    } else {
+                        f.setValue(value);
+                    }
+                }
+            }
+        }
+    }
+
     private SolrInputDocument fetchExistingOrCreateNewSolrDoc(String id) throws SolrServerException, IOException {
       Map<String, String> p = new HashMap<String, String>();
       p.put("q", ID + ":\"" + ClientUtils.escapeQueryChars(id) + "\"");
@@ -239,7 +284,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             Collection<Object> values = f.getValues();
             
             if (values != null && values.size() > 0) {
-              doc.addField(f.getName(), values);
+              addField(doc, f.getName(), values);
             }
           }
         }
