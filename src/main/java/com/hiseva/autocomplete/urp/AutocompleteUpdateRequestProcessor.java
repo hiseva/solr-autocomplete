@@ -270,7 +270,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       } else if (res.getResults().size() == 1) {
         SolrDocument doc = res.getResults().get(0);
         SolrInputDocument tmp = new SolrInputDocument();
-        tmp.addField(FREQUENCY, doc.getFieldValue(FREQUENCY));
+        for (String fieldName : doc.getFieldNames()) {
+          tmp.addField(fieldName, doc.getFieldValue(fieldName));
+        }
         return tmp;
       } else {
         throw new IllegalStateException("Query with params : " + p + " returned more than 1 hit!");
