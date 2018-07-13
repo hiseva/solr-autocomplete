@@ -150,7 +150,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 document.addField(VERSION, 0);
                 document.addField(ID, id);
                 document.addField(PHRASE, p);
-                addField(document, TYPE, (HashSet) uniquePhrases.get(p).get("type"));
+                addField(document, schema, TYPE, (HashSet) uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
@@ -214,7 +214,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
-    private void addCount(SolrInputDocument doc, String name, Integer value) {
+    static void addCount(SolrInputDocument doc, String name, Integer value) {
         // find if such field already exists
         if (doc.get(name) == null) {
             doc.addField(name, Math.log10(value));
@@ -229,7 +229,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
-    private void addField(SolrInputDocument doc, String name, Collection<Object> values) {
+    static void addField(SolrInputDocument doc, Map<String, SchemaField> schema, String name, Collection<Object> values) {
         if (doc.get(name) == null) {
             if (values != null) {
                 for (Object value : values) {
@@ -297,7 +297,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             Collection<Object> values = f.getValues();
             
             if (values != null && values.size() > 0) {
-              addField(doc, f.getName(), values);
+              addField(doc, schema, f.getName(), values);
             }
           }
         }
