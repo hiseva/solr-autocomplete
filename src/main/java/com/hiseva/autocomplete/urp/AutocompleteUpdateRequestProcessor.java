@@ -52,6 +52,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
+    private List<String> aggregateFields;
 
     public AutocompleteUpdateRequestProcessor(SolrClient solrAC, Map<String, SchemaField> schema, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
@@ -62,6 +63,11 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         this.copyAsIsFields = copyAsIsFields;
         this.idFields = idFields;
         this.separator = separator;
+
+        this.aggregateFields = new ArrayList<>();
+        aggregateFields.addAll(copyAsIsFields);
+        aggregateFields.add(FREQUENCY);
+        aggregateFields.add(TYPE);
     }
 
     @Override
@@ -247,7 +253,12 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 }
 
                 if (!valueExists) {
-                    if (schema.get(name).multiValued()) {
+                    SchemaField sf = schema.get(name);
+                    if (sf == null) {
+                        LOG.error("No such field in schema: " + name + "!");
+                    }
+
+                    if (sf != null && sf.multiValued()) {
                         f.addValue(value);
                     } else {
                         f.setValue(value);
@@ -270,7 +281,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       } else if (res.getResults().size() == 1) {
         SolrDocument doc = res.getResults().get(0);
         SolrInputDocument tmp = new SolrInputDocument();
-        for (String fieldName : doc.getFieldNames()) {
+        for (String fieldName : aggregateFields) {
           tmp.addField(fieldName, doc.getFieldValue(fieldName));
         }
         return tmp;
