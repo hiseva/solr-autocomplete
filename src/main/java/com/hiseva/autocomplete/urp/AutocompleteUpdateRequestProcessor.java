@@ -1,14 +1,5 @@
-/*
- *    Copyright (c) 2007-2009 Sematext International
- *    All Rights Reserved
- *
- *    THIS IS UNPUBLISHED PROPRIETARY SOURCE CODE OF Sematext International
- *    The copyright notice above does not evidence any actual or intended
- *    publication of such source code.
- */
 package com.hiseva.autocomplete.urp;
 
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -18,7 +9,6 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
@@ -150,6 +140,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 document.addField(VERSION, 0);
                 document.addField(ID, id);
                 document.addField(PHRASE, p);
+                //next fields are aggregated over time
                 addField(document, schema, TYPE, (HashSet) uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
@@ -222,9 +213,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             SolrInputField f = doc.get(name);
 
             if (f.getValue() == null){
-                f.setValue(Math.log10(value));
+                f.setValue((float) Math.log10(value));
             } else {
-                f.setValue(Math.log10(Math.pow(10, (float) f.getValue()) + (float) value));
+                f.setValue((float) Math.log10(Math.pow(10, (double) f.getValue()) + value));
             }
         }
     }
