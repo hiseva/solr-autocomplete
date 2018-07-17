@@ -244,14 +244,10 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 }
 
                 if (!valueExists) {
-                    SchemaField sf = schema.get(name);
-                    if (sf == null) {
-                        LOG.error("No such field in schema: " + name + "!");
-                    }
-
-                    if (sf != null && sf.multiValued()) {
+                    try {
                         f.addValue(value);
-                    } else {
+                    } catch (Throwable thr) {
+                        LOG.warn("Error accumulating values for doc", thr);
                         f.setValue(value);
                     }
                 }
