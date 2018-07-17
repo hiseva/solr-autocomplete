@@ -215,7 +215,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             if (f.getValue() == null){
                 f.setValue((float) Math.log10(value));
             } else {
-                f.setValue((float) Math.log10(Math.pow(10, (double) f.getValue()) + value));
+                f.setValue((float) Math.log10(Math.pow(10, (float) f.getValue()) + value));
             }
         }
     }

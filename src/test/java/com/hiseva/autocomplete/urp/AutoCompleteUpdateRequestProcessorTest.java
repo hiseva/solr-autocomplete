@@ -24,8 +24,8 @@ public class AutoCompleteUpdateRequestProcessorTest {
     @Test
     public void testAddCount() {
         SolrInputDocument doc = new SolrInputDocument();
-        doc.addField("frequency", 2.0);
+        doc.addField("frequency", 2.0F);
         addCount(doc,"frequency",900);
-        Assert.assertEquals(3.0, (float) doc.getFieldValue("frequency"), 0.000001);
+        Assert.assertEquals(3.0F, (float) doc.getFieldValue("frequency"), 0.000001F);
     }
 }
