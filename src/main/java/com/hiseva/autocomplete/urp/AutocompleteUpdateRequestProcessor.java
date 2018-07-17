@@ -236,8 +236,10 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 }
                 boolean valueExists = false;
 
+                String valueStr = value.toString();
+
                 for (Object existingValue : f.getValues()) {
-                    if (existingValue != null && existingValue.equals(value)) {
+                    if (existingValue != null && existingValue.toString().equals(valueStr)) {
                         valueExists = true;
                         break;
                     }
