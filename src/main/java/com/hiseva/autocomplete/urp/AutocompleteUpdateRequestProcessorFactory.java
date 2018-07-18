@@ -3,6 +3,8 @@ package com.hiseva.autocomplete.urp;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.request.schema.SchemaRequest;
+import org.apache.solr.client.solrj.response.schema.SchemaResponse;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
@@ -12,14 +14,16 @@ import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 import org.apache.solr.util.plugin.SolrCoreAware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
+import javax.xml.validation.Schema;
+import java.util.*;
+
+import static org.apache.solr.client.solrj.request.schema.SchemaRequest.*;
 
 public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProcessorFactory implements SolrCoreAware {
-
+    private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessorFactory.class);
     private String solrAC;
     private SolrClient solrACServer;
     private String separator;
@@ -90,7 +94,7 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             this.solrACServer = new EmbeddedSolrServer(core.getCoreContainer(), solrAC);
         }
 
-        Map<String, SchemaField> schemaFields = core.getLatestSchema().getFields();
+        Map<String, Map<String, Object>> schemaFields = getSolrACSchema(this.solrACServer);
 
         return new AutocompleteUpdateRequestProcessor(solrACServer, schemaFields, fields, fieldWeights, copyAsIsFields, idFields, separator, nextURP);
     }
@@ -98,5 +102,26 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
     @Override
     public void inform(SolrCore core) {
         this.core = core;
+    }
+
+    static Map<String, Map<String, Object>> getSolrACSchema (SolrClient solrClient) {
+        SchemaRequest.Fields schemaRequestFields = new SchemaRequest.Fields();
+        SchemaResponse.FieldsResponse schemaFields = new SchemaResponse.FieldsResponse();
+        try {
+            schemaFields = schemaRequestFields.process(solrClient);
+        } catch (Throwable thr) {
+            LOG.error("error getting schema", thr);
+        }
+
+        List<Map<String, Object>> fieldsList = schemaFields.getFields();
+
+        Map<String, Map<String, Object>> fieldsMap = new HashMap<>();
+        for (Map<String, Object> f: fieldsList) {
+            if (f.containsKey("name") && f.get("name") != null) {
+                fieldsMap.put((String) f.remove("name"), f);
+            }
+        }
+
+        return fieldsMap;
     }
 }

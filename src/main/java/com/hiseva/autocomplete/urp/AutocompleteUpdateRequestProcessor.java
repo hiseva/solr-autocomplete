@@ -9,7 +9,6 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     static final String FREQUENCY = "frequency";
 
     private SolrClient solrAC;
-    private Map<String, SchemaField> schema;
+    private Map<String, Map<String, Object>> schema;
     private List<String> fields;
     private List<Integer> fieldWeights;
     private List<String> copyAsIsFields;
@@ -44,7 +43,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     private String separator;
     private List<String> aggregateFields;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, Map<String, SchemaField> schema, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, Map<String, Map<String, Object>> schema, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
         this.solrAC = solrAC;
         this.schema = schema;
@@ -220,7 +219,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
-    static void addField(SolrInputDocument doc, Map<String, SchemaField> schema, String name, Collection<Object> values) {
+    static void addField(SolrInputDocument doc, Map<String, Map<String, Object>> schema, String name, Collection<Object> values) {
         if (doc.get(name) == null) {
             if (values != null) {
                 for (Object value : values) {
@@ -246,12 +245,12 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 }
 
                 if (!valueExists) {
-                    SchemaField sf = schema.get(name);
+                    Map<String, Object> sf = schema.get(name);
                     if (sf == null) {
                         LOG.error("No such field in schema: " + name + "!");
                     }
 
-                    if (sf != null && sf.multiValued()) {
+                    if (sf != null && sf.containsKey("multiValued") && (boolean) sf.get("multiValued")) {
                         f.addValue(value);
                     } else {
                         f.setValue(value);
