@@ -1,5 +1,6 @@
 package com.hiseva.autocomplete.urp;
 
+import org.apache.hadoop.util.hash.Hash;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -140,7 +141,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 document.addField(ID, id);
                 document.addField(PHRASE, p);
                 //next fields are aggregated over time
-                addField(document, schema, TYPE, (HashSet) uniquePhrases.get(p).get("type"));
+                addField(document, schema, TYPE, (Collection<Object>) uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
