@@ -2,6 +2,7 @@ package com.hiseva.autocomplete.urp;
 
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CommonParams;
@@ -25,7 +26,7 @@ public class AutoCompleteUpdateRequestProcessorTest extends SolrTestCaseJ4 {
     }
 
     @Test
-    public void testGetSolrACSchema() {
+    public void testGetSolrACSchema() throws IOException, SolrServerException {
         Map<String, Map<String, Object>> schema = getSolrACSchema(solrAC);
 
         Assert.assertEquals("string", (String) schema.get("id").get("type"));
@@ -41,7 +42,7 @@ public class AutoCompleteUpdateRequestProcessorTest extends SolrTestCaseJ4 {
     }
 
     @Test
-    public void testAddField() {
+    public void testAddField() throws IOException, SolrServerException {
         SolrInputDocument doc = new SolrInputDocument();
         doc.addField("id", "test-1");
         doc.addField("type", "title");

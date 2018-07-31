@@ -1,6 +1,7 @@
 package com.hiseva.autocomplete.urp;
 
 import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.request.schema.SchemaRequest;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.validation.Schema;
+import java.io.IOException;
 import java.util.*;
 
 import static org.apache.solr.client.solrj.request.schema.SchemaRequest.*;
@@ -94,7 +96,13 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
             this.solrACServer = new EmbeddedSolrServer(core.getCoreContainer(), solrAC);
         }
 
-        Map<String, Map<String, Object>> schemaFields = getSolrACSchema(this.solrACServer);
+        Map<String, Map<String, Object>> schemaFields = null;
+        try {
+            schemaFields = getSolrACSchema(this.solrACServer);
+        } catch (Exception e) {
+            // setup error
+            throw new RuntimeException(e);
+        }
 
         return new AutocompleteUpdateRequestProcessor(solrACServer, schemaFields, fields, fieldWeights, copyAsIsFields, idFields, separator, nextURP);
     }
@@ -104,14 +112,9 @@ public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProc
         this.core = core;
     }
 
-    static Map<String, Map<String, Object>> getSolrACSchema (SolrClient solrClient) {
+    static Map<String, Map<String, Object>> getSolrACSchema (SolrClient solrClient) throws IOException, SolrServerException {
         SchemaRequest.Fields schemaRequestFields = new SchemaRequest.Fields();
-        SchemaResponse.FieldsResponse schemaFields = new SchemaResponse.FieldsResponse();
-        try {
-            schemaFields = schemaRequestFields.process(solrClient);
-        } catch (Throwable thr) {
-            LOG.error("error getting schema", thr);
-        }
+        SchemaResponse.FieldsResponse schemaFields = schemaRequestFields.process(solrClient);
 
         List<Map<String, Object>> fieldsList = schemaFields.getFields();
 
