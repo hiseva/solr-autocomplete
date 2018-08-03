@@ -10,19 +10,15 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
-import org.apache.solr.schema.IndexSchema;
-import org.apache.solr.schema.SchemaField;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorFactory;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.validation.Schema;
 import java.io.IOException;
 import java.util.*;
 
-import static org.apache.solr.client.solrj.request.schema.SchemaRequest.*;
 
 public class AutocompleteUpdateRequestProcessorFactory extends UpdateRequestProcessorFactory implements SolrCoreAware {
     private static final Logger LOG = LoggerFactory.getLogger(AutocompleteUpdateRequestProcessorFactory.class);

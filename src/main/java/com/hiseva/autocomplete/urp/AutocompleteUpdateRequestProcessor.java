@@ -1,6 +1,5 @@
 package com.hiseva.autocomplete.urp;
 
-import org.apache.hadoop.util.hash.Hash;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -15,7 +14,6 @@ import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.validation.SchemaFactoryLoader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -221,7 +219,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     }
 
     static void addField(SolrInputDocument doc, Map<String, Map<String, Object>> schema, String name, Collection<Object> values) {
-        if (doc.get(name) == null) {
+        if (doc.get(name) == null || doc.get(name).getValues() == null) {
             if (values != null) {
                 for (Object value : values) {
                     doc.addField(name, value);
