@@ -1,11 +1,3 @@
-/*
- *    Copyright (c) 2007-2009 Sematext International
- *    All Rights Reserved
- *
- *    THIS IS UNPUBLISHED PROPRIETARY SOURCE CODE OF Sematext International
- *    The copyright notice above does not evidence any actual or intended
- *    publication of such source code.
- */
 package com.hiseva.autocomplete.urp;
 
 import org.apache.solr.client.solrj.SolrClient;
@@ -42,20 +34,28 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
     static final String FREQUENCY = "frequency";
 
     private SolrClient solrAC;
+    private Map<String, Map<String, Object>> schema;
     private List<String> fields;
     private List<Integer> fieldWeights;
     private List<String> copyAsIsFields;
     private List<String> idFields;
     private String separator;
+    private List<String> aggregateFields;
 
-    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
+    public AutocompleteUpdateRequestProcessor(SolrClient solrAC, Map<String, Map<String, Object>> schema, List<String> fields, List<Integer> fieldWeights, List<String> copyAsIsFields, List<String> idFields, String separator, UpdateRequestProcessor next) {
         super(next);
         this.solrAC = solrAC;
+        this.schema = schema;
         this.fields = fields;
         this.fieldWeights = fieldWeights;
         this.copyAsIsFields = copyAsIsFields;
         this.idFields = idFields;
         this.separator = separator;
+
+        this.aggregateFields = new ArrayList<>();
+        aggregateFields.addAll(copyAsIsFields);
+        aggregateFields.add(FREQUENCY);
+        aggregateFields.add(TYPE);
     }
 
     @Override
@@ -138,7 +138,8 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
                 document.addField(VERSION, 0);
                 document.addField(ID, id);
                 document.addField(PHRASE, p);
-                document.addField(TYPE, uniquePhrases.get(p).get("type"));
+                //next fields are aggregated over time
+                addField(document, schema, TYPE, (Collection<Object>) uniquePhrases.get(p).get("type"));
                 addCount(document, FREQUENCY, (int) uniquePhrases.get(p).get("count"));
                 addCopyAsIsFields(document, copyAsIsFieldsValues);
                 documents.add(document);
@@ -157,14 +158,19 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
 
     private void addPhrase(Map<String, Map<String, Object>> uniquePhrases, String phrase, String type, Integer weight) {
         if (phrase != null && !phrase.equals("")) {
-            Map<String, Object> d = new HashMap<>();
+            Map<String, Object> d;
+            Set<String> types;
             if (uniquePhrases.containsKey(phrase)) {
                 d = uniquePhrases.get(phrase);
-                d.put("count", 1 * weight + (int) d.get("count"));
             } else {
-                d.put("type", type);
-                d.put("count", 1 * weight);
+                d = new HashMap<>();
+                d.put("type", new HashSet<>());
             }
+            d.put("count", 1 * weight + (int) d.getOrDefault("count", 0));
+            types = (HashSet<String>) d.get("type");
+            types.add(type);
+            d.put("type", types);
+
             uniquePhrases.put(phrase, d);
         }
     }
@@ -197,7 +203,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
         }
     }
 
-    private void addCount(SolrInputDocument doc, String name, Integer value) {
+    static void addCount(SolrInputDocument doc, String name, Integer value) {
         // find if such field already exists
         if (doc.get(name) == null) {
             doc.addField(name, Math.log10(value));
@@ -205,9 +211,50 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             SolrInputField f = doc.get(name);
 
             if (f.getValue() == null){
-                f.setValue(Math.log10(value));
+                f.setValue((float) Math.log10(value));
             } else {
-                f.setValue(Math.log10(Math.pow(10, (float) f.getValue()) + (float) value));
+                f.setValue((float) Math.log10(Math.pow(10, (float) f.getValue()) + value));
+            }
+        }
+    }
+
+    static void addField(SolrInputDocument doc, Map<String, Map<String, Object>> schema, String name, Collection<Object> values) {
+        if (doc.get(name) == null || doc.get(name).getValues() == null) {
+            if (values != null) {
+                for (Object value : values) {
+                    doc.addField(name, value);
+                }
+            }
+        } else {
+            SolrInputField f = doc.get(name);
+
+            for (Object value : values) {
+                if (value == null) {
+                    continue;
+                }
+                boolean valueExists = false;
+
+                String valueStr = value.toString();
+
+                for (Object existingValue : f.getValues()) {
+                    if (existingValue != null && existingValue.toString().equals(valueStr)) {
+                        valueExists = true;
+                        break;
+                    }
+                }
+
+                if (!valueExists) {
+                    Map<String, Object> sf = schema.get(name);
+                    if (sf == null) {
+                        LOG.error("No such field in schema: " + name + "!");
+                    }
+
+                    if (sf != null && sf.containsKey("multiValued") && (boolean) sf.get("multiValued")) {
+                        f.addValue(value);
+                    } else {
+                        f.setValue(value);
+                    }
+                }
             }
         }
     }
@@ -225,7 +272,9 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
       } else if (res.getResults().size() == 1) {
         SolrDocument doc = res.getResults().get(0);
         SolrInputDocument tmp = new SolrInputDocument();
-        tmp.addField(FREQUENCY, doc.getFieldValue(FREQUENCY));
+        for (String fieldName : aggregateFields) {
+          tmp.addField(fieldName, doc.getFieldValue(fieldName));
+        }
         return tmp;
       } else {
         throw new IllegalStateException("Query with params : " + p + " returned more than 1 hit!");
@@ -239,7 +288,7 @@ public class AutocompleteUpdateRequestProcessor extends UpdateRequestProcessor {
             Collection<Object> values = f.getValues();
             
             if (values != null && values.size() > 0) {
-              doc.addField(f.getName(), values);
+              addField(doc, schema, f.getName(), values);
             }
           }
         }

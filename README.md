@@ -15,6 +15,7 @@ We updated the realtime `UpdateRequestProcessor` to support the following functi
 Performance improvement and bug fixes:
 
 * batched instead of individual phrase updates
+* overwrite or append to a field based on whether it's multiValued
 * version conflict bug fix
 
 ## Installation Instrcutions
@@ -135,3 +136,7 @@ Other advanced features from the sematext solr-autocomplete project are still av
 ```
 http://local.hiseva.com:8983/solr/main_ac/select?q=ma&qt=dismax_ac&bf=frequency&ac_spellcheck=true&fq=userid:xxx-xxx-xxx
 ```
+
+### Performance
+
+Since we are storing phrases per user, the index is much larger than if we had used the same phrase data for all users. It's really important that we tune the solr cache for best performance. Options to consider include setting up strategic warming queries for new searcher events instead of replying on auto warming, and increasing the commit intervals so the cache is valid for a longer period.
