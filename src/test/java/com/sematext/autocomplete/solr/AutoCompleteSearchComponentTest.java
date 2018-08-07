@@ -90,10 +90,10 @@ public class AutoCompleteSearchComponentTest extends SolrTestCaseJ4 {
         AutoCompleteSearchComponent.AC_GROUPING_FIELD_DEFINITION_PARAM_NAME, "dvd:3 book:1 pc:4",
         AutoCompleteSearchComponent.COMPONENT_NAME, "true")
         ,"//result[@name='response'][@numFound='4']"
-        ,"//result[@name='response']/doc[1]/str[@name='type'][.='dvd']"
-        ,"//result[@name='response']/doc[2]/str[@name='type'][.='dvd']"
-        ,"//result[@name='response']/doc[3]/str[@name='type'][.='dvd']"
-        ,"//result[@name='response']/doc[4]/str[@name='type'][.='book']"
+        ,"//result[@name='response']/doc[1]/arr[@name='type'][.='dvd']"
+        ,"//result[@name='response']/doc[2]/arr[@name='type'][.='dvd']"
+        ,"//result[@name='response']/doc[3]/arr[@name='type'][.='dvd']"
+        ,"//result[@name='response']/doc[4]/arr[@name='type'][.='book']"
     );
   }
   
