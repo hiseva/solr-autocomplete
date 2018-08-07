@@ -4,7 +4,7 @@
   <groupId>com.hiseva.autocomplete</groupId>
   <artifactId>seva-AutoComplete</artifactId>
   <name>AutoComplete</name>
-  <version>1.6.7.1.2-SNAPSHOT</version>
+  <version>1.6.7.1.2</version>
   <packaging>jar</packaging>
   <description>Solr component for implementing suggest-as-you-type and auto-complete functionality</description>
   <url>https://github.com/hiseva/solr-autocomplete</url>
@@ -41,7 +41,7 @@
     <connection>scm:git:git@github.com:hiseva/solr-autocomplete.git</connection>
     <developerConnection>scm:git:git@github.com:hiseva/solr-autocomplete.git</developerConnection>
     <url>https://github.com/hiseva/solr-autocomplete</url>
-    <tag>HEAD</tag>
+    <tag>seva-AutoComplete-1.6.7.1.2</tag>
   </scm>
 
   <distributionManagement>
